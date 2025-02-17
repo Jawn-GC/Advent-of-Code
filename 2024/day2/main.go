@@ -35,7 +35,7 @@ func main() {
 	}
 
 	for _, report := range reports {
-		if isReportSafe(report) {
+		if isReportSafe(report, true) {
 			num_safe_reports += 1
 		}
 	}
@@ -55,12 +55,18 @@ func convertReportStringsToInts(report_strings []string) ([]int, error) {
 	return report_ints, nil
 }
 
-func isReportSafe(report []int) bool {
+func isReportSafe(report []int, dampen ...bool) bool {
+	isSafe := true
 	isDecreasing, isIncreasing := true, true
+	isDamp := false
 	var previous_num int
 
 	if len(report) == 0 {
 		return true
+	}
+
+	if len(dampen) > 0 {
+		isDamp = dampen[0]
 	}
 
 	for i, num := range report {
@@ -71,7 +77,8 @@ func isReportSafe(report []int) bool {
 
 		difference := num - previous_num
 		if difference == 0 {
-			return false
+			isSafe = false
+			break
 		} else if difference > 0 {
 			isDecreasing = false
 		} else if difference < 0 {
@@ -80,15 +87,32 @@ func isReportSafe(report []int) bool {
 		}
 
 		if !isDecreasing && !isIncreasing {
-			return false
+			isSafe = false
+			break
 		}
 
 		if difference > 3 {
-			return false
+			isSafe = false
+			break
 		}
 
 		previous_num = num
 	}
 
-	return true
+	if isDamp && !isSafe {
+		for i := 0; i < len(report); i++ {
+			sliced_report := []int{}
+			for j := 0; j < len(report); j++ {
+				if i != j {
+					sliced_report = append(sliced_report, report[j])
+				}
+			}
+			isSafe = isReportSafe(sliced_report)
+			if isSafe {
+				break
+			}
+		}
+	}
+
+	return isSafe
 }
