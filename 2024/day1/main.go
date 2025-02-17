@@ -44,8 +44,6 @@ func main() {
 			counts[num2] = 0
 		}
 		counts[num2] += 1
-
-		fmt.Printf("%d %d\n", num1, num2)
 	}
 
 	if len(col1) != len(col2) {
