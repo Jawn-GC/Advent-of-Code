@@ -20,6 +20,7 @@ func main() {
 	defer file.Close()
 
 	var col1, col2 []int
+	counts := make(map[int]int)
 	scanner := bufio.NewScanner(file)
 
 	fmt.Printf("Parsing integers...\n")
@@ -29,15 +30,20 @@ func main() {
 
 		num1, err := strconv.Atoi(num_strs[0])
 		if err != nil {
-			fmt.Printf("Error converting %q to an integer: %v\n", num1, err)
+			fmt.Printf("Error converting %s to an integer: %v\n", num_strs[0], err)
 		}
 		col1 = append(col1, num1)
 
 		num2, err := strconv.Atoi(num_strs[1])
 		if err != nil {
-			fmt.Printf("Error converting %q to an integer: %v\n", num2, err)
+			fmt.Printf("Error converting %s to an integer: %v\n", num_strs[1], err)
 		}
 		col2 = append(col2, num2)
+
+		if _, ok := counts[num2]; !ok {
+			counts[num2] = 0
+		}
+		counts[num2] += 1
 
 		fmt.Printf("%d %d\n", num1, num2)
 	}
@@ -50,7 +56,6 @@ func main() {
 	sort.Ints(col2)
 
 	total_difference := 0
-
 	for i := range col1 {
 		difference := col1[i] - col2[i]
 		if difference < 0 {
@@ -59,5 +64,14 @@ func main() {
 		total_difference += difference
 	}
 
+	similarity := 0
+	for _, val := range col1 {
+		count, ok := counts[val]
+		if ok {
+			similarity += val * count
+		}
+	}
+
 	fmt.Printf("The total difference between the lists is: %d\n", total_difference)
+	fmt.Printf("The similarity between the lists is: %d\n", similarity)
 }
