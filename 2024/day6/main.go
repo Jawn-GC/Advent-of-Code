@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type Guard struct {
+type State struct {
 	Row int
 	Col int
 	Dir string
@@ -42,7 +42,7 @@ func main() {
 
 	lab_grid := [][]string{}
 	guard_found := false
-	guard := Guard{
+	guard := State{
 		Row: 0,
 		Col: 0,
 		Dir: "UP", // The guard is assumed to be facing up at the start
@@ -66,10 +66,27 @@ func main() {
 		}
 	}
 
-	fmt.Printf("Predicting path...\n")
-	num_X := predictPath(lab_grid, guard)
+	grid_copy := getGridCopy(lab_grid)
+	guard_copy := guard
 
-	fmt.Printf("The guard visited %d unique tiles.\n", num_X)
+	// Path for original lab grid
+	fmt.Printf("Predicting path...\n")
+	x_states, _ := predictPath(grid_copy, guard_copy)
+	fmt.Printf("The guard visited %d unique tiles.\n", len(x_states))
+
+	// Paths for modified lab grid
+	num_loops := 0
+	fmt.Printf("\nFinding potential infinite loops...\n")
+	for _, state := range x_states {
+		grid_copy = getGridCopy(lab_grid)
+		guard_copy = guard
+		grid_copy[state.Row][state.Col] = "#"
+		_, loop_found := predictPath(grid_copy, guard_copy)
+		if loop_found {
+			num_loops++
+		}
+	}
+	fmt.Printf("There are %d potential loops.\n", num_loops)
 }
 
 func getIndex[T comparable](val T, slice []T) int {
@@ -82,21 +99,22 @@ func getIndex[T comparable](val T, slice []T) int {
 }
 
 // Marks positions that the guard has occupied with "X".
-// Returns the total number of X-marked positions.
-// This could be split up into two separate functions.
-func predictPath(lab_grid [][]string, guard Guard) int {
-	num_X := 0
+// Returns the states of the guard at X-marked positions.
+// Returns true/false if a loop is found/not found.
+func predictPath(lab_grid [][]string, guard State) ([]State, bool) {
 	dirTracker := 0 // The guard starts facing "UP"
+	states := []State{}
 	height := len(lab_grid)
 	width := len(lab_grid[0])
 	tile_ahead := ""
 	delta := Directions[guard.Dir]
+	loop_found := false
 
 outerLoop:
 	for {
 		if lab_grid[guard.Row][guard.Col] != "X" {
 			lab_grid[guard.Row][guard.Col] = "X"
-			num_X++
+			states = append(states, State{Row: guard.Row, Col: guard.Col, Dir: guard.Dir})
 		}
 	innerLoop:
 		for {
@@ -124,7 +142,22 @@ outerLoop:
 
 		guard.Row += delta.Dy
 		guard.Col += delta.Dx
+
+		if getIndex(guard, states) != -1 {
+			loop_found = true
+			break outerLoop
+		}
 	}
 
-	return num_X
+	return states, loop_found
+}
+
+func getGridCopy(grid [][]string) [][]string {
+	grid_copy := [][]string{}
+	for _, row := range grid {
+		row_copy := make([]string, len(row))
+		copy(row_copy, row)
+		grid_copy = append(grid_copy, row_copy)
+	}
+	return grid_copy
 }
