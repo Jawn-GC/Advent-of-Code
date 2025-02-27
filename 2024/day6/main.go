@@ -78,6 +78,9 @@ func main() {
 	num_loops := 0
 	fmt.Printf("\nFinding potential infinite loops...\n")
 	for _, state := range x_states {
+		if state.Row == guard.Row && state.Col == guard.Col {
+			continue
+		}
 		grid_copy = getGridCopy(lab_grid)
 		guard_copy = guard
 		grid_copy[state.Row][state.Col] = "#"
