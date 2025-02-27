@@ -55,7 +55,11 @@ func getCalibrationResult(equations map[string][]string) (int, error) {
 			terms = append(terms, term)
 		}
 
-		if validPermutationFound(result, terms) {
+		is_valid_permutation, err := validPermutationFound(result, terms)
+		if err != nil {
+			return 0, err
+		}
+		if is_valid_permutation {
 			total += result
 		}
 	}
@@ -65,32 +69,40 @@ func getCalibrationResult(equations map[string][]string) (int, error) {
 
 // Determine if there exists some order of + and * between the "terms"
 // that gives "result". Operations are resolved from left to right.
-// In the operations binary string, 0 is + and 1 is *.
-func validPermutationFound(result int, terms []int) bool {
+// In the operations string, 0 is +, 1 is *, and 2 is concantenation.
+func validPermutationFound(result int, terms []int) (bool, error) {
 	n := len(terms) - 1
-	num_permutations := intPow(2, n)
-	operations := 0b0
+	num_permutations := intPow(3, n)
+	operations := 0
 	for i := 0; i < num_permutations; i++ {
 		total := terms[0]
-		operations_str := fmt.Sprintf("%0*b", n, operations)
+		base3_str := strconv.FormatInt(int64(operations), 3)
+		operations_str := fmt.Sprintf("%0*s", n, base3_str) // Pad the number with leading zeros
 		operations_runes := []rune(operations_str)
 		for j := 0; j < n; j++ {
 			if operations_runes[j] == '0' {
 				total += terms[j+1]
 			} else if operations_runes[j] == '1' {
 				total *= terms[j+1]
+			} else if operations_runes[j] == '2' {
+				temp_str := strconv.FormatInt(int64(total), 10) + strconv.FormatInt(int64(terms[j+1]), 10)
+				temp_int, err := strconv.Atoi(temp_str)
+				if err != nil {
+					return false, err
+				}
+				total = temp_int
 			}
 		}
 		if result == total {
-			return true
+			return true, nil
 		}
 		operations++
 	}
 
-	return false
+	return false, nil
 }
 
-// Helper function for calculating powers of 2
+// Helper function for calculating powers
 func intPow(base int, exp int) int {
 	result := 1
 	for i := 0; i < exp; i++ {
