@@ -50,32 +50,53 @@ func findAntinodes(antennas map[rune][]Point, height int, width int) []Point {
 
 	for _, points := range antennas {
 		n := len(points)
+
+		// Antennas of a particluar type are antinodes if there are at least 2 of them
 		if n < 2 {
 			continue
 		}
+
 		for i := 0; i < n-1; i++ {
 			for j := i + 1; j < n; j++ {
 				dx := points[j].Col - points[i].Col
 				dy := points[j].Row - points[i].Row
-
-				new_row := points[j].Row + dy
-				new_col := points[j].Col + dx
-
-				if new_row >= 0 && new_row < height && new_col >= 0 && new_col < width {
-					new_point := Point{Row: new_row, Col: new_col}
-					if getIndex(new_point, antinodes) == -1 {
-						antinodes = append(antinodes, new_point)
-					}
+				if !isInSlice(points[i], antinodes) {
+					antinodes = append(antinodes, points[i])
+				}
+				if !isInSlice(points[j], antinodes) {
+					antinodes = append(antinodes, points[j])
 				}
 
-				new_row = points[i].Row - dy
-				new_col = points[i].Col - dx
-
-				if new_row >= 0 && new_row < height && new_col >= 0 && new_col < width {
+				// In the direction from Point i to Point j
+				new_row := points[j].Row + dy
+				new_col := points[j].Col + dx
+				for {
+					if new_row < 0 || new_row >= height || new_col < 0 || new_col >= width {
+						break
+					}
 					new_point := Point{Row: new_row, Col: new_col}
-					if getIndex(new_point, antinodes) == -1 {
+					if !isInSlice(new_point, antinodes) {
 						antinodes = append(antinodes, new_point)
 					}
+
+					new_row += dy
+					new_col += dx
+				}
+
+				// In the direction from Point j to Point i
+				new_row = points[i].Row - dy
+				new_col = points[i].Col - dx
+				for {
+					if new_row < 0 || new_row >= height || new_col < 0 || new_col >= width {
+						break
+					}
+					new_point := Point{Row: new_row, Col: new_col}
+					if !isInSlice(new_point, antinodes) {
+						antinodes = append(antinodes, new_point)
+					}
+
+					new_row -= dy
+					new_col -= dx
 				}
 			}
 		}
@@ -84,13 +105,11 @@ func findAntinodes(antennas map[rune][]Point, height int, width int) []Point {
 	return antinodes
 }
 
-// Structs are comparable if all of their fields are
-// also comparable. The Point struct has two int fields.
-func getIndex[T comparable](val T, slice []T) int {
-	for i, v := range slice {
+func isInSlice[T comparable](val T, slice []T) bool {
+	for _, v := range slice {
 		if v == val {
-			return i
+			return true
 		}
 	}
-	return -1
+	return false
 }
