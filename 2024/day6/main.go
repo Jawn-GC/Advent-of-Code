@@ -36,7 +36,8 @@ func main() {
 	filename := "input.txt"
 	file, err := os.Open(filename)
 	if err != nil {
-		fmt.Printf("Could not open %s: %v", filename, err)
+		fmt.Printf("Could not open %s: %v\n", filename, err)
+		return
 	}
 	defer file.Close()
 
