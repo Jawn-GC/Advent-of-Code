@@ -7,6 +7,12 @@ import (
 	"unicode"
 )
 
+type Block struct {
+	Index int
+	Id    int
+	Size  int
+}
+
 func main() {
 	filename := "input.txt"
 	file, err := os.Open(filename)
@@ -18,6 +24,8 @@ func main() {
 
 	is_file := true
 	disk := []int{}
+	file_blocks := []Block{}
+	free_blocks := []Block{}
 	id := 0
 	reader := bufio.NewReader(file)
 
@@ -33,16 +41,20 @@ func main() {
 			break
 		}
 
-		// Alternate between creating file blocks and free spaces
+		// Alternate between creating file blocks and free blocks
 		if unicode.IsDigit(r) {
 			size := int(r - '0')
 			if is_file {
+				block := Block{Index: len(disk), Id: id, Size: size}
+				file_blocks = append(file_blocks, block)
 				for range size {
 					disk = append(disk, id)
 				}
 				id++
 				is_file = false
 			} else {
+				block := Block{Index: len(disk), Id: -1, Size: size}
+				free_blocks = append(free_blocks, block)
 				for range size {
 					disk = append(disk, -1) // -1 will represent a free space since valid ids are not negative
 				}
@@ -52,12 +64,13 @@ func main() {
 	}
 
 	fmt.Printf("Moving file blocks...\n")
-	moveBlocks(disk)
+	// moveBlocks(disk)
+	moveBlocks2(disk, file_blocks, free_blocks)
 
 	fmt.Printf("Calculating checksum...\n")
 	checksum := getChecksum(disk)
 
-	fmt.Printf("Filesystem checksum: %d\n", checksum)
+	fmt.Printf("Filesystem Checksum: %d\n", checksum)
 }
 
 func moveBlocks(disk []int) {
@@ -79,7 +92,7 @@ func moveBlocks(disk []int) {
 		}
 
 		// Find the rightmost file block
-		for j := right_block_index; j > 0; j-- {
+		for j := right_block_index; j >= 0; j-- {
 			if disk[j] != -1 {
 				right_block_index = j
 				block_found = true
@@ -106,13 +119,31 @@ func moveBlocks(disk []int) {
 	}
 }
 
+func moveBlocks2(disk []int, files []Block, gaps []Block) { // This function modifies disk and gaps
+	for i := len(files) - 1; i >= 0; i-- { // Iterate over the file blocks in order of decreasing id #
+	fileLoop:
+		for j := 0; j < len(gaps); j++ { // Iterate over the gaps starting from the left
+			if gaps[j].Size != 0 && gaps[j].Index < files[i].Index && gaps[j].Size >= files[i].Size {
+				for k := 0; k < files[i].Size; k++ { // Fill the jth gap with the ith file
+					disk[gaps[j].Index+k] = files[i].Id
+					disk[files[i].Index+k] = -1
+				}
+				gaps[j].Size -= files[i].Size
+				gaps[j].Index += files[i].Size
+
+				break fileLoop
+			}
+		}
+	}
+}
+
 func getChecksum(disk []int) int {
 	checksum := 0
 	for i := 0; i < len(disk); i++ {
-		if disk[i] == -1 {
-			break
+		id := disk[i]
+		if id != -1 {
+			checksum += id * i
 		}
-		checksum += disk[i] * i
 	}
 	return checksum
 }
