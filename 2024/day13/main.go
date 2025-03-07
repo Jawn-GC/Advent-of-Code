@@ -76,8 +76,6 @@ func numTokensRequired(machine ClawMachine) int {
 		tokens += 3*int(a) + int(b)
 	}
 
-	fmt.Printf("%v\n", matrix)
-
 	return tokens
 }
 
@@ -135,15 +133,20 @@ func rref(matrix [][]float64) {
 // This function simply checks if the solution vector has
 // whole-number values.
 func isValidSolution(matrix [][]float64) bool {
-	a, af := math.Modf(matrix[0][2])
-	b, bf := math.Modf(matrix[1][2])
+	a := matrix[0][2]
+	b := matrix[1][2]
 
-	ar := math.Round(matrix[0][2])
-	br := math.Round(matrix[1][2])
+	// The number of button presses should not be negative.
+	if a < 0 || b < 0 {
+		return false
+	}
 
-	tol := 0.000001
+	ar := math.Round(a)
+	br := math.Round(b)
 
-	if math.Abs(ar-(a+af)) > tol || math.Abs(br-(b+bf)) > tol {
+	tol := 0.0000001
+
+	if math.Abs(ar-a) > tol || math.Abs(br-b) > tol {
 		return false
 	}
 
