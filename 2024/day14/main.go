@@ -57,10 +57,12 @@ func main() {
 	grid_height := 103
 	grid_width := 101
 	steps := 100
+	cur_step := 1
 	fmt.Printf("Moving robots...\n")
-	for i := 0; i < len(robots); i++ {
-		robot := &robots[i]
-		for j := 0; j < steps; j++ {
+	for i := 0; i < steps; i++ {
+		grid := newGrid(grid_height, grid_width)
+		for j := 0; j < len(robots); j++ {
+			robot := &robots[j]
 			robot.Move()
 			robot.X %= grid_width
 			if robot.X < 0 {
@@ -70,7 +72,13 @@ func main() {
 			if robot.Y < 0 {
 				robot.Y += grid_height
 			}
+			grid[robot.Y][robot.X] = "*"
 		}
+		//if (cur_step-89)%grid_height == 0 || (cur_step-11)%grid_width == 0 {
+		//	fmt.Printf("Step number: %d\n", cur_step)
+		//	printGrid(grid)
+		//}
+		cur_step++
 	}
 
 	fmt.Printf("Locating robots...\n")
@@ -92,4 +100,28 @@ func main() {
 	safety_factor := ul * ur * lr * ll
 
 	fmt.Printf("Safety factor after %d steps: %d\n", steps, safety_factor)
+}
+
+func newGrid(height, width int) [][]string {
+	grid := [][]string{}
+	for range height {
+		grid_row := []string{}
+		for range width {
+			grid_row = append(grid_row, ".")
+		}
+		grid = append(grid, grid_row)
+	}
+	return grid
+}
+
+func printGrid(grid [][]string) {
+	height := len(grid)
+	width := len(grid[0])
+
+	for i := range height {
+		for j := range width {
+			fmt.Printf(grid[i][j])
+		}
+		fmt.Printf("\n")
+	}
 }
