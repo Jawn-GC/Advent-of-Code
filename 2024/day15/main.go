@@ -31,7 +31,7 @@ var Directions = map[string]Point{
 	"<": {Row: 0, Col: -1},
 }
 
-var mode = "normal" // normal or wide
+var mode = "wide" // normal or wide
 func main() {
 	filename := "input.txt"
 	file, err := os.Open(filename)
@@ -57,6 +57,20 @@ func main() {
 			grid_row := strings.Split(line, "")
 			if mode == "normal" {
 				grid = append(grid, grid_row)
+			} else if mode == "wide" {
+				wide_row := []string{}
+				for _, symbol := range grid_row {
+					if symbol == "#" {
+						wide_row = append(wide_row, "#", "#")
+					} else if symbol == "O" {
+						wide_row = append(wide_row, "[", "]")
+					} else if symbol == "." {
+						wide_row = append(wide_row, ".", ".")
+					} else if symbol == "@" {
+						wide_row = append(wide_row, "@", ".")
+					}
+				}
+				grid = append(grid, wide_row)
 			}
 		} else if input_type == "moves" {
 			moves = append(moves, strings.Split(line, "")...)
@@ -105,30 +119,69 @@ func canMove(entity Entity, dir string, grid [][]string, entities_to_move *[]Ent
 	adj_ent_type := grid[adj_point.Row][adj_point.Col]
 	adj_entity := Entity{Ent_Type: adj_ent_type, Position: adj_point}
 
+	// Empty Space
+	if entity.Ent_Type == "." {
+		return true
+	}
+
 	// Robot
 	if entity.Ent_Type == "@" {
-		if adj_entity.Ent_Type == "." {
+		if adj_entity.Ent_Type != "#" && canMove(adj_entity, dir, grid, entities_to_move) {
 			*entities_to_move = append(*entities_to_move, entity)
 			return true
-		} else if adj_entity.Ent_Type == "O" {
-			if canMove(adj_entity, dir, grid, entities_to_move) {
-				*entities_to_move = append(*entities_to_move, entity)
-				return true
-			}
 		}
 	}
 
 	// Normal Barrels
 	if entity.Ent_Type == "O" {
-		if adj_entity.Ent_Type == "." {
+		if adj_entity.Ent_Type != "#" && canMove(adj_entity, dir, grid, entities_to_move) {
 			*entities_to_move = append(*entities_to_move, entity)
 			return true
-		} else if adj_entity.Ent_Type == "O" {
-			if canMove(adj_entity, dir, grid, entities_to_move) {
-				*entities_to_move = append(*entities_to_move, entity)
-				return true
-			}
 		}
+	}
+
+	// Wide Barrels
+	if entity.Ent_Type == "[" {
+		right_point := entity.Position.Add(Directions[">"])
+		right_ent_type := grid[right_point.Row][right_point.Col]
+		right_half := Entity{Ent_Type: right_ent_type, Position: right_point}
+
+		if dir == "^" || dir == "v" {
+			diag_point := adj_point.Add(Directions[">"])
+			diag_ent_type := grid[diag_point.Row][diag_point.Col]
+			diag_entity := Entity{Ent_Type: diag_ent_type, Position: diag_point}
+
+			if adj_entity.Ent_Type != "#" && diag_entity.Ent_Type != "#" {
+				if diag_entity.Ent_Type == "]" {
+					if canMove(adj_entity, dir, grid, entities_to_move) {
+						*entities_to_move = append(*entities_to_move, entity)
+						*entities_to_move = append(*entities_to_move, right_half)
+						return true
+					}
+				} else if canMove(adj_entity, dir, grid, entities_to_move) && canMove(diag_entity, dir, grid, entities_to_move) {
+					*entities_to_move = append(*entities_to_move, entity)
+					*entities_to_move = append(*entities_to_move, right_half)
+					return true
+				}
+			}
+		} else if adj_entity.Ent_Type != "#" && canMove(adj_entity, dir, grid, entities_to_move) {
+			*entities_to_move = append(*entities_to_move, entity)
+			return true
+		}
+	}
+
+	if entity.Ent_Type == "]" {
+		left_point := entity.Position.Add(Directions["<"])
+		left_ent_type := grid[left_point.Row][left_point.Col]
+		left_half := Entity{Ent_Type: left_ent_type, Position: left_point}
+
+		if dir == "^" || dir == "v" {
+			return canMove(left_half, dir, grid, entities_to_move)
+		} else if adj_entity.Ent_Type != "#" && canMove(adj_entity, dir, grid, entities_to_move) {
+			*entities_to_move = append(*entities_to_move, entity)
+			return true
+		}
+
 	}
 
 	return false
