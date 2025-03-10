@@ -19,6 +19,11 @@ func (p Point) Add(other Point) Point {
 	}
 }
 
+type Entity struct {
+	Ent_Type string
+	Position Point
+}
+
 var Directions = map[string]Point{
 	"^": {Row: -1, Col: 0},
 	">": {Row: 0, Col: 1},
@@ -26,6 +31,7 @@ var Directions = map[string]Point{
 	"<": {Row: 0, Col: -1},
 }
 
+var mode = "normal" // normal or wide
 func main() {
 	filename := "input.txt"
 	file, err := os.Open(filename)
@@ -49,7 +55,9 @@ func main() {
 		}
 		if input_type == "grid" {
 			grid_row := strings.Split(line, "")
-			grid = append(grid, grid_row)
+			if mode == "normal" {
+				grid = append(grid, grid_row)
+			}
 		} else if input_type == "moves" {
 			moves = append(moves, strings.Split(line, "")...)
 		}
@@ -61,6 +69,14 @@ func main() {
 	fmt.Printf("Calculating GPS coordinates...\n")
 	gps_sum := calcGPSSum(grid)
 	fmt.Printf("The sum of GPS coordinates is %d\n", gps_sum)
+
+	// Print final grid
+	//for _, grid_row := range grid {
+	//	for _, str := range grid_row {
+	//		fmt.Printf("%s", str)
+	//	}
+	//	fmt.Printf("\n")
+	//}
 }
 
 func calcGPSSum(grid [][]string) int {
@@ -75,37 +91,66 @@ func calcGPSSum(grid [][]string) int {
 }
 
 func followInstructions(grid [][]string, moves []string) {
-	for _, move := range moves {
-		r_pos := findRobot(grid)
-		tryMove(r_pos, move, grid)
+	for i := 0; i < len(moves); i++ {
+		robot := Entity{Ent_Type: "@", Position: findRobot(grid)}
+		entities_to_move := []Entity{}
+		if canMove(robot, moves[i], grid, &entities_to_move) {
+			moveEntities(grid, entities_to_move, moves[i])
+		}
 	}
 }
 
-func tryMove(entity_point Point, dir string, grid [][]string) {
-	entity := grid[entity_point.Row][entity_point.Col]
+func canMove(entity Entity, dir string, grid [][]string, entities_to_move *[]Entity) bool {
+	adj_point := entity.Position.Add(Directions[dir])
+	adj_ent_type := grid[adj_point.Row][adj_point.Col]
+	adj_entity := Entity{Ent_Type: adj_ent_type, Position: adj_point}
 
-	adj_point := entity_point.Add(Directions[dir])
-	adj_entity := grid[adj_point.Row][adj_point.Col]
-	if entity == "@" || entity == "O" {
-		if adj_entity == "O" {
-			tryMove(adj_point, dir, grid)
-			// The adjacent entity may have changed after the move attempt,
-			// so we need to update it.
-			adj_entity = grid[adj_point.Row][adj_point.Col]
+	// Robot
+	if entity.Ent_Type == "@" {
+		if adj_entity.Ent_Type == "." {
+			*entities_to_move = append(*entities_to_move, entity)
+			return true
+		} else if adj_entity.Ent_Type == "O" {
+			if canMove(adj_entity, dir, grid, entities_to_move) {
+				*entities_to_move = append(*entities_to_move, entity)
+				return true
+			}
 		}
+	}
 
-		// Move the entity into the adjacent space and free up the previous space.
-		if adj_entity == "." {
-			grid[adj_point.Row][adj_point.Col] = entity
-			grid[entity_point.Row][entity_point.Col] = "."
+	// Normal Barrels
+	if entity.Ent_Type == "O" {
+		if adj_entity.Ent_Type == "." {
+			*entities_to_move = append(*entities_to_move, entity)
+			return true
+		} else if adj_entity.Ent_Type == "O" {
+			if canMove(adj_entity, dir, grid, entities_to_move) {
+				*entities_to_move = append(*entities_to_move, entity)
+				return true
+			}
 		}
+	}
+
+	return false
+}
+
+func moveEntities(grid [][]string, entities []Entity, dir string) {
+	// Erase symbols at entity positions
+	for _, entity := range entities {
+		grid[entity.Position.Row][entity.Position.Col] = "."
+	}
+
+	// Add symbols to new entity positions
+	for _, entity := range entities {
+		adj_point := entity.Position.Add(Directions[dir])
+		grid[adj_point.Row][adj_point.Col] = entity.Ent_Type
 	}
 }
 
 func findRobot(grid [][]string) Point {
 	for i, grid_row := range grid {
-		for j, entity := range grid_row {
-			if entity == "@" {
+		for j, entity_type := range grid_row {
+			if entity_type == "@" {
 				return Point{Row: i, Col: j}
 			}
 		}
@@ -117,7 +162,9 @@ func findBarrels(grid [][]string) []Point {
 	barrels := []Point{}
 	for i, grid_row := range grid {
 		for j, entity := range grid_row {
-			if entity == "O" {
+			if mode == "normal" && entity == "O" {
+				barrels = append(barrels, Point{Row: i, Col: j})
+			} else if mode == "wide" && entity == "[" {
 				barrels = append(barrels, Point{Row: i, Col: j})
 			}
 		}
