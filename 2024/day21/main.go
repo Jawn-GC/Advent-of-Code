@@ -74,6 +74,43 @@ var dir_ref = map[string]Point{
 	"A": {Row: 0, Col: 2},
 }
 
+// Symbol pair to path reference.
+// Obtained by printing the map after use in Part 1.
+// map[<<:A <A:>>^A <^:>^A <v:>A >>:A >A:^A >^:<^A >v:<A A<:v<<A A>:vA AA:A A^:<A Av:<vA ^<:v<A ^>:v>A ^A:>A ^^:A v<:<A v>:>A vA:^>A vv:A]
+var pair_sequences = make(map[string]map[string]int)
+
+func init_pair_sequences() {
+	pair_sequences["AA"] = map[string]int{"AA": 1}
+	pair_sequences["A^"] = map[string]int{"A<": 1, "<A": 1}
+	pair_sequences["A>"] = map[string]int{"Av": 1, "vA": 1}
+	pair_sequences["Av"] = map[string]int{"A<": 1, "<v": 1, "vA": 1}
+	pair_sequences["A<"] = map[string]int{"Av": 1, "v<": 1, "<<": 1, "<A": 1}
+
+	pair_sequences["^A"] = map[string]int{"A>": 1, ">A": 1}
+	pair_sequences["^^"] = map[string]int{"AA": 1}
+	pair_sequences["^>"] = map[string]int{"Av": 1, "v>": 1, ">A": 1}
+	// No entry required for "^v"
+	pair_sequences["^<"] = map[string]int{"Av": 1, "v<": 1, "<A": 1}
+
+	pair_sequences[">A"] = map[string]int{"A^": 1, "^A": 1}
+	pair_sequences[">^"] = map[string]int{"A<": 1, "<^": 1, "^A": 1}
+	pair_sequences[">>"] = map[string]int{"AA": 1}
+	pair_sequences[">v"] = map[string]int{"A<": 1, "<A": 1}
+	// No entry required for "><"
+
+	pair_sequences["vA"] = map[string]int{"A^": 1, "^>": 1, ">A": 1}
+	// No entry required for "v^"
+	pair_sequences["v>"] = map[string]int{"A>": 1, ">A": 1}
+	pair_sequences["vv"] = map[string]int{"AA": 1}
+	pair_sequences["v<"] = map[string]int{"A<": 1, "<A": 1}
+
+	pair_sequences["<A"] = map[string]int{"A>": 1, ">>": 1, ">^": 1, "^A": 1}
+	pair_sequences["<^"] = map[string]int{"A>": 1, ">^": 1, "^A": 1}
+	// No entry required for "<>"
+	pair_sequences["<v"] = map[string]int{"A>": 1, ">A": 1}
+	pair_sequences["<<"] = map[string]int{"AA": 1}
+}
+
 func main() {
 	filename := "input.txt"
 	file, err := os.Open(filename)
@@ -95,15 +132,20 @@ func main() {
 	// Robots 2 & 3 are at direction pads
 	// The user is at a direction pad
 	fmt.Printf("Writing instructions...\n")
-	complexity_sum := 0
-	num_dir_robots := 2
+	complexity_sum1 := 0
+	complexity_sum2 := 0
+	num_dir_robots1 := 2
+	num_dir_robots2 := 25
 	dir_memo := make(map[string]string) // Key: "start_symbol"+"end_symbol"
+	init_pair_sequences()
+
+	// Part 1
 	for _, code := range codes {
 		main_robot := num_ref["A"]
 		dir_robots := []Point{}
 		instructions := numToDir(&main_robot, code)
 
-		for i := 0; i < num_dir_robots; i++ {
+		for i := 0; i < num_dir_robots1; i++ {
 			dir_robots = append(dir_robots, dir_ref["A"])
 		}
 
@@ -112,10 +154,30 @@ func main() {
 		}
 
 		num, _ := strconv.Atoi(strings.TrimRight(code, "A"))
-		complexity_sum += len(instructions) * num
+		complexity_sum1 += len(instructions) * num
 	}
 
-	fmt.Printf("Complexity sum: %d\n", complexity_sum)
+	// Part 2
+	// Uses a different method because strings eventually become too large.
+	for _, code := range codes {
+		main_robot := num_ref["A"]
+		instructions := numToDir(&main_robot, code)
+		pair_counts := get_initial_pair_counts(instructions)
+
+		for i := 0; i < num_dir_robots2; i++ {
+			pair_counts = get_next_pair_counts(pair_counts)
+		}
+
+		num_instructions := 0
+		num, _ := strconv.Atoi(strings.TrimRight(code, "A"))
+		for _, val := range pair_counts {
+			num_instructions += val
+		}
+		complexity_sum2 += num_instructions * num
+	}
+
+	fmt.Printf("Complexity sum [Part 1]: %d\n", complexity_sum1)
+	fmt.Printf("Complexity sum [Part 2]: %d\n", complexity_sum2)
 }
 
 func numToDir(robot *Point, code string) string {
@@ -296,4 +358,35 @@ func dirToDir(robot *Point, code string, dir_memo map[string]string) string {
 	}
 
 	return builder.String()
+}
+
+func get_initial_pair_counts(instructions string) map[string]int {
+	pair_counts := make(map[string]int)
+	for key, _ := range pair_sequences {
+		pair_counts[key] = 0
+	}
+
+	points := []string{"A"}
+	points = append(points, strings.Split(instructions, "")...)
+	for i := 0; i < len(points)-1; i++ {
+		pair_counts[points[i]+points[i+1]]++
+	}
+
+	return pair_counts
+}
+
+func get_next_pair_counts(pair_counts map[string]int) map[string]int {
+	new_counts := make(map[string]int)
+	for key, _ := range pair_sequences {
+		new_counts[key] = 0
+	}
+
+	for pair, count := range pair_counts {
+		seq := pair_sequences[pair]
+		for key, val := range seq {
+			new_counts[key] += val * count
+		}
+	}
+
+	return new_counts
 }
