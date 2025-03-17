@@ -21,6 +21,23 @@ var digit_ref = map[string]string{
 	"nine":  "9",
 }
 
+type Overlap struct {
+	Name   string
+	Symbol string
+	Offset int
+}
+
+var possible_overlaps = []Overlap{
+	{Name: "oneight", Symbol: "e", Offset: 2},
+	{Name: "twone", Symbol: "o", Offset: 2},
+	{Name: "threeight", Symbol: "e", Offset: 4},
+	{Name: "fiveight", Symbol: "e", Offset: 3},
+	{Name: "sevenine", Symbol: "n", Offset: 4},
+	{Name: "eightwo", Symbol: "t", Offset: 4},
+	{Name: "eighthree", Symbol: "t", Offset: 4},
+	{Name: "nineight", Symbol: "e", Offset: 3},
+}
+
 func main() {
 	filename := "input.txt"
 	file, err := os.Open(filename)
@@ -45,8 +62,10 @@ func main() {
 	}
 
 	// Part 2
+	fmt.Println("[Part 2] Detecting overlaps...")
+	modified_document := splitOverlaps(document)
 	fmt.Println("[Part 2] Reformatting document...")
-	reformatted_document := reformatDocument(document)
+	reformatted_document := reformatDocument(modified_document)
 	fmt.Println("[Part 2] Parsing calibration values...")
 	calibration_sum2 := 0
 	for _, line := range reformatted_document {
@@ -135,4 +154,31 @@ func reformatDocument(doc []string) []string {
 	}
 
 	return reformatted_doc
+}
+
+// Some lines in the document may have two or more number names
+// overlapping by one letter (ex. twone). This function will
+// duplicate each overlapped letter.
+func splitOverlaps(doc []string) []string {
+	modified_doc := []string{}
+	for _, line := range doc {
+		for _, overlap := range possible_overlaps {
+			for {
+				match_found := false
+
+				index := strings.Index(line, overlap.Name)
+				if index != -1 {
+					match_found = true
+					dupe_index := index + overlap.Offset
+					line = line[:dupe_index] + overlap.Symbol + line[dupe_index:]
+				}
+
+				if !match_found {
+					break
+				}
+			}
+		}
+		modified_doc = append(modified_doc, line)
+	}
+	return modified_doc
 }
