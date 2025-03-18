@@ -18,10 +18,8 @@ func main() {
 
 	defer file.Close()
 
-	var reports [][]int
-	num_safe_reports := 0
-
 	fmt.Printf("Parsing reports...\n")
+	var reports [][]int
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -29,18 +27,31 @@ func main() {
 		report_ints, err := convertReportStringsToInts(report_strings)
 		if err != nil {
 			fmt.Printf("Error converting strings to ints: %v\n", err)
+			return
 		}
 
 		reports = append(reports, report_ints)
 	}
 
+	// Part 1
+	fmt.Println("[Part 1] Detecting safe reports...")
+	num_safe_reports1 := 0
+	for _, report := range reports {
+		if isReportSafe(report, false) {
+			num_safe_reports1 += 1
+		}
+	}
+	// Part 2
+	fmt.Println("[Part 2] Detecting safe reports with dampening...")
+	num_safe_reports2 := 0
 	for _, report := range reports {
 		if isReportSafe(report, true) {
-			num_safe_reports += 1
+			num_safe_reports2 += 1
 		}
 	}
 
-	fmt.Printf("The number of safe reports is: %d\n", num_safe_reports)
+	fmt.Printf("[Part 1] The number of safe reports is: %d\n", num_safe_reports1)
+	fmt.Printf("[Part 2] The number of safe reports is: %d\n", num_safe_reports2)
 }
 
 func convertReportStringsToInts(report_strings []string) ([]int, error) {
@@ -55,18 +66,17 @@ func convertReportStringsToInts(report_strings []string) ([]int, error) {
 	return report_ints, nil
 }
 
-func isReportSafe(report []int, dampen ...bool) bool {
+// A report is labeled as safe if the ints are strictly increasing/decreasing
+// and differences between consecutive ints are no more than 3.
+// If damping is applied, a report is safe if a single int can be removed to
+// make the report safe.
+func isReportSafe(report []int, dampen bool) bool {
 	isSafe := true
 	isDecreasing, isIncreasing := true, true
-	isDamp := false
 	var previous_num int
 
 	if len(report) == 0 {
 		return true
-	}
-
-	if len(dampen) > 0 {
-		isDamp = dampen[0]
 	}
 
 	for i, num := range report {
@@ -99,7 +109,7 @@ func isReportSafe(report []int, dampen ...bool) bool {
 		previous_num = num
 	}
 
-	if isDamp && !isSafe {
+	if dampen && !isSafe {
 		for i := 0; i < len(report); i++ {
 			sliced_report := []int{}
 			for j := 0; j < len(report); j++ {
@@ -107,7 +117,7 @@ func isReportSafe(report []int, dampen ...bool) bool {
 					sliced_report = append(sliced_report, report[j])
 				}
 			}
-			isSafe = isReportSafe(sliced_report)
+			isSafe = isReportSafe(sliced_report, false)
 			if isSafe {
 				break
 			}

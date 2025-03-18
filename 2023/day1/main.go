@@ -182,3 +182,11 @@ func splitOverlaps(doc []string) []string {
 	}
 	return modified_doc
 }
+
+// Better solution for Part 2:
+//
+// Modify getCalibrationValue() to save found numbers and their
+// indeces in a list. Use strings.Index() to find where the
+// number names are. Order the list by index number and use the
+// first and last entry to create the calibration value. It is not
+// necessary to create a reformatted document.
