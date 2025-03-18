@@ -17,10 +17,10 @@ func main() {
 	}
 	defer file.Close()
 
+	fmt.Print("Parsing ordering rules...\n")
 	ordering_rules := map[string][]string{}
 	orderingRulesRead := false
 	updates := [][]string{}
-	fmt.Print("Parsing ordering rules...\n")
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -78,14 +78,14 @@ func main() {
 		}
 	}
 
-	fmt.Printf("The middle sum of all valid updates is: %d\n", middle_sum)
-	fmt.Printf("The middle sum of all fixed updates is: %d\n", fixed_middle_sum)
+	fmt.Printf("[Part 1] The middle sum of all valid updates is: %d\n", middle_sum)
+	fmt.Printf("[Part 2] The middle sum of all fixed updates is: %d\n", fixed_middle_sum)
 }
 
-// For each page in invalid_update, count how many of the other pages exist in its ordering_rules value (a slice)
-// Order the pages by this new count value
-// The new index for each page should be equal to their corresponding count value
-// The solution is expected to be unique
+// For each page in invalid_update, count how many of the other pages exist in its ordering_rules value (a slice).
+// Order the pages by this new count value.
+// The new index for each page should be equal to their corresponding count value.
+// The solution is expected to be unique.
 func fixUpdate(invalid_update []string, ordering_rules map[string][]string) []string {
 	fixed_update := []string{}
 	new_indexes := map[string]int{}

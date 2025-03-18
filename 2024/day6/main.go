@@ -70,14 +70,13 @@ func main() {
 	grid_copy := getGridCopy(lab_grid)
 	guard_copy := guard
 
-	// Path for original lab grid
+	// Part 1
 	fmt.Printf("Predicting path...\n")
 	x_states, _ := predictPath(grid_copy, guard_copy)
-	fmt.Printf("The guard visited %d unique tiles.\n", len(x_states))
 
-	// Paths for modified lab grid
+	// Part 2 (Slow)
 	num_loops := 0
-	fmt.Printf("\nFinding potential infinite loops...\n")
+	fmt.Printf("Finding potential infinite loops...\n")
 	for _, state := range x_states {
 		if state.Row == guard.Row && state.Col == guard.Col {
 			continue
@@ -90,7 +89,9 @@ func main() {
 			num_loops++
 		}
 	}
-	fmt.Printf("There are %d potential loops.\n", num_loops)
+
+	fmt.Printf("[Part 1] The guard visited %d unique tiles.\n", len(x_states))
+	fmt.Printf("[Part 2] There are %d potential loops.\n", num_loops)
 }
 
 func getIndex[T comparable](val T, slice []T) int {

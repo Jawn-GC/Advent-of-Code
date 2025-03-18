@@ -31,14 +31,19 @@ func main() {
 	}
 
 	fmt.Printf("Calibrating...\n")
-	calibration_result, err := getCalibrationResult(equations)
+	calibration_result1, err := getCalibrationResult(equations, 2)
 	if err != nil {
 		fmt.Printf("Could not complete calibration: %v", err)
 	}
-	fmt.Printf("Calibration Result: %d\n", calibration_result)
+	calibration_result2, err := getCalibrationResult(equations, 3)
+	if err != nil {
+		fmt.Printf("Could not complete calibration: %v", err)
+	}
+	fmt.Printf("[Part 1] Calibration Result: %d\n", calibration_result1)
+	fmt.Printf("[Part 2] Calibration Result: %d\n", calibration_result2)
 }
 
-func getCalibrationResult(equations map[string][]string) (int, error) {
+func getCalibrationResult(equations map[string][]string, base int) (int, error) {
 	total := 0
 
 	for key, value := range equations {
@@ -56,7 +61,7 @@ func getCalibrationResult(equations map[string][]string) (int, error) {
 			terms = append(terms, term)
 		}
 
-		is_valid_permutation, err := validPermutationFound(result, terms)
+		is_valid_permutation, err := validPermutationFound(result, terms, base)
 		if err != nil {
 			return 0, err
 		}
@@ -68,17 +73,17 @@ func getCalibrationResult(equations map[string][]string) (int, error) {
 	return total, nil
 }
 
-// Determine if there exists some order of + and * between the "terms"
+// Determine if there exists some order of operations between the "terms"
 // that gives "result". Operations are resolved from left to right.
 // In the operations string, 0 is +, 1 is *, and 2 is concantenation.
-func validPermutationFound(result int, terms []int) (bool, error) {
+func validPermutationFound(result int, terms []int, base int) (bool, error) {
 	n := len(terms) - 1
-	num_permutations := intPow(3, n)
+	num_permutations := intPow(base, n)
 	operations := 0
 	for i := 0; i < num_permutations; i++ {
 		total := terms[0]
-		base3_str := strconv.FormatInt(int64(operations), 3)
-		operations_str := fmt.Sprintf("%0*s", n, base3_str) // Pad the number with leading zeros
+		base_str := strconv.FormatInt(int64(operations), base)
+		operations_str := fmt.Sprintf("%0*s", n, base_str) // Pad the number with leading zeros
 		operations_runes := []rune(operations_str)
 		for j := 0; j < n; j++ {
 			if operations_runes[j] == '0' {
