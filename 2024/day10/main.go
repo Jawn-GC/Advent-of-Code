@@ -61,17 +61,22 @@ func main() {
 	}
 
 	fmt.Printf("Calculating trail scores...\n")
-	total := 0
+	total_score := 0
+	total_rating := 0
 	for i := 0; i < len(trailheads); i++ {
 		Endpoints[trailheads[i]] = []Point{}
-		total += followPath(grid, trailheads[i], trailheads[i], 0)
+		score, rating := followPath(grid, trailheads[i], trailheads[i], 0)
+		total_score += score
+		total_rating += rating
 	}
 
-	fmt.Printf("Trail scores total: %d\n", total)
+	fmt.Printf("[Part 1] Trail scores total: %d\n", total_score)
+	fmt.Printf("[Part 2] Trail ratings total: %d\n", total_rating)
 }
 
-func followPath(grid [][]int, trailhead Point, current_point Point, current_elevation int) int {
-	score := 0
+func followPath(grid [][]int, trailhead Point, current_point Point, current_elevation int) (int, int) {
+	total_score := 0
+	total_rating := 0
 
 	for _, delta := range Dir {
 		next_point := current_point.Add(delta)
@@ -79,16 +84,19 @@ func followPath(grid [][]int, trailhead Point, current_point Point, current_elev
 			next_elevation := grid[next_point.Row][next_point.Col]
 			if current_elevation == 8 && next_elevation == 9 {
 				if !isInSlice(next_point, Endpoints[trailhead]) {
-					score += 1
+					total_score++
 					Endpoints[trailhead] = append(Endpoints[trailhead], next_point)
 				}
+				total_rating++
 			} else if next_elevation == current_elevation+1 {
-				score += followPath(grid, trailhead, next_point, next_elevation)
+				score, rating := followPath(grid, trailhead, next_point, next_elevation)
+				total_score += score
+				total_rating += rating
 			}
 		}
 	}
 
-	return score
+	return total_score, total_rating
 }
 
 func isOutOfBounds(grid [][]int, p Point) bool {
