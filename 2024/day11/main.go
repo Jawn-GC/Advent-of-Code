@@ -34,7 +34,9 @@ func main() {
 	}
 
 	fmt.Printf("Blinking...\n")
-	num_blinks := 75
+	num_blinks1 := 25
+	num_blinks2 := 75
+
 	stone_freq := map[int]int{}
 
 	for _, stone := range stones {
@@ -44,15 +46,26 @@ func main() {
 		stone_freq[stone] += 1
 	}
 
-	for i := 0; i < num_blinks; i++ {
+	// Stop after number of blinks required for Part 1.
+	for i := 0; i < num_blinks1; i++ {
 		stone_freq = blink(stone_freq)
 	}
-
-	num_stones := 0
+	num_stones1 := 0
 	for _, freq := range stone_freq {
-		num_stones += freq
+		num_stones1 += freq
 	}
-	fmt.Printf("After %d blinks there are %d stones\n", num_blinks, num_stones)
+
+	// Continue blinking for Part 2
+	for i := 0; i < (num_blinks2 - num_blinks1); i++ {
+		stone_freq = blink(stone_freq)
+	}
+	num_stones2 := 0
+	for _, freq := range stone_freq {
+		num_stones2 += freq
+	}
+
+	fmt.Printf("[Part 1] After %d blinks there are %d stones\n", num_blinks1, num_stones1)
+	fmt.Printf("[Part 2] After %d blinks there are %d stones\n", num_blinks2, num_stones2)
 }
 
 func blink(stone_freq map[int]int) map[int]int {
