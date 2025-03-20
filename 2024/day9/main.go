@@ -64,16 +64,21 @@ func main() {
 	}
 
 	fmt.Printf("Moving file blocks...\n")
-	// moveBlocks(disk)
-	moveBlocks2(disk, file_blocks, free_blocks)
+	disk_copy1 := copyDisk(disk)
+	disk_copy2 := copyDisk(disk)
 
-	fmt.Printf("Calculating checksum...\n")
-	checksum := getChecksum(disk)
+	moveBlocks1(disk_copy1)
+	moveBlocks2(disk_copy2, file_blocks, free_blocks)
 
-	fmt.Printf("Filesystem Checksum: %d\n", checksum)
+	fmt.Printf("Calculating checksums...\n")
+	checksum1 := getChecksum(disk_copy1)
+	checksum2 := getChecksum(disk_copy2)
+
+	fmt.Printf("[Part 1] Filesystem Checksum: %d\n", checksum1)
+	fmt.Printf("[Part 2] Filesystem Checksum: %d\n", checksum2)
 }
 
-func moveBlocks(disk []int) {
+func moveBlocks1(disk []int) {
 	disk_space := len(disk)
 	left_space_index := 0
 	right_block_index := disk_space - 1
@@ -119,7 +124,7 @@ func moveBlocks(disk []int) {
 	}
 }
 
-func moveBlocks2(disk []int, files []Block, gaps []Block) { // This function modifies disk and gaps
+func moveBlocks2(disk []int, files []Block, gaps []Block) {
 	for i := len(files) - 1; i >= 0; i-- { // Iterate over the file blocks in order of decreasing id #
 	fileLoop:
 		for j := 0; j < len(gaps); j++ { // Iterate over the gaps starting from the left
@@ -146,4 +151,10 @@ func getChecksum(disk []int) int {
 		}
 	}
 	return checksum
+}
+
+func copyDisk(disk []int) []int {
+	disk_copy := []int{}
+	disk_copy = append(disk_copy, disk...)
+	return disk_copy
 }
