@@ -42,21 +42,72 @@ func main() {
 	}
 
 	fmt.Printf("Locating antinodes..\n")
-	antinodes := findAntinodes(antennas, row_count, col_count)
-	fmt.Printf("There are %d unique antinodes.\n", len(antinodes))
+	antinodes1 := findAntinodes1(antennas, row_count, col_count)
+	antinodes2 := findAntinodes2(antennas, row_count, col_count)
+	fmt.Printf("[Part 1] There are %d unique antinodes.\n", len(antinodes1))
+	fmt.Printf("[Part 2] There are %d unique antinodes.\n", len(antinodes2))
 }
 
-func findAntinodes(antennas map[rune][]Point, height int, width int) []Point {
+// A point is an antinode of a pair of antennas of the same type if it is in line
+// with both of them, but only when one of the antennas is twice as far away as
+// the other. The antinode must be within the bounds of the grid.
+func findAntinodes1(antennas map[rune][]Point, height int, width int) []Point {
 	antinodes := []Point{}
 
 	for _, points := range antennas {
 		n := len(points)
 
-		// Antennas of a particluar type are antinodes if there are at least 2 of them
+		// Antinodes are created if there are at least two antennas of a type.
+		// Skip any group of 1 or fewer antennas.
 		if n < 2 {
 			continue
 		}
 
+		// Iterate over all possible pairs of antennas.
+		for i := 0; i < n-1; i++ {
+			for j := i + 1; j < n; j++ {
+				dx := points[j].Col - points[i].Col
+				dy := points[j].Row - points[i].Row
+
+				new_row := points[j].Row + dy
+				new_col := points[j].Col + dx
+				new_point := Point{Row: new_row, Col: new_col}
+				if new_row >= 0 && new_row < height && new_col >= 0 && new_col < width {
+					if !isInSlice(new_point, antinodes) {
+						antinodes = append(antinodes, new_point)
+					}
+				}
+
+				new_row = points[j].Row - 2*dy
+				new_col = points[j].Col - 2*dx
+				new_point = Point{Row: new_row, Col: new_col}
+				if new_row >= 0 && new_row < height && new_col >= 0 && new_col < width {
+					if !isInSlice(new_point, antinodes) {
+						antinodes = append(antinodes, new_point)
+					}
+				}
+			}
+		}
+	}
+
+	return antinodes
+}
+
+// A point is an antinode of a pair of antennas of the same type if it is in line
+// with both of them. The antinode must be within the bounds of the grid.
+func findAntinodes2(antennas map[rune][]Point, height int, width int) []Point {
+	antinodes := []Point{}
+
+	for _, points := range antennas {
+		n := len(points)
+
+		// Antinodes are created if there are at least two antennas of a type.
+		// Skip any group of 1 or fewer antennas.
+		if n < 2 {
+			continue
+		}
+
+		// Iterate over all possible pairs of antennas.
 		for i := 0; i < n-1; i++ {
 			for j := i + 1; j < n; j++ {
 				dx := points[j].Col - points[i].Col
@@ -68,7 +119,7 @@ func findAntinodes(antennas map[rune][]Point, height int, width int) []Point {
 					antinodes = append(antinodes, points[j])
 				}
 
-				// In the direction from Point i to Point j
+				// In the direction from Point i to Point j.
 				new_row := points[j].Row + dy
 				new_col := points[j].Col + dx
 				for {
@@ -84,7 +135,7 @@ func findAntinodes(antennas map[rune][]Point, height int, width int) []Point {
 					new_col += dx
 				}
 
-				// In the direction from Point j to Point i
+				// In the direction from Point j to Point i.
 				new_row = points[i].Row - dy
 				new_col = points[i].Col - dx
 				for {
