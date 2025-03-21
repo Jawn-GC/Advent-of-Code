@@ -86,8 +86,8 @@ func main() {
 			total_price_sides += calcFencePricingBySides(region)
 		}
 	}
-	fmt.Printf("The total price of fencing (by perimeter) for all regions is %d\n", total_price_perimeter)
-	fmt.Printf("The total price of fencing (by sides) for all regions is %d\n", total_price_sides)
+	fmt.Printf("[Part 1] The total price of fencing (by perimeter) for all regions is %d\n", total_price_perimeter)
+	fmt.Printf("[Part 2] The total price of fencing (by sides) for all regions is %d\n", total_price_sides)
 }
 
 func findPlotRegions(garden [][]Plot) map[string][][]*Plot {
