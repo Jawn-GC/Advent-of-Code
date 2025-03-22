@@ -14,6 +14,11 @@ type Point struct {
 	Col int
 }
 
+type Digit struct {
+	Pos    Point
+	Number *Number // Reference to the Number this Digit is part of
+}
+
 func (p Point) Add(other Point) Point {
 	return Point{
 		Row: p.Row + other.Row,
@@ -33,7 +38,7 @@ var Dir = map[string]Point{
 }
 
 type Number struct {
-	Digits []Point
+	Digits []Digit
 }
 
 func main() {
@@ -58,9 +63,20 @@ func main() {
 	part_numbers := getPartNumbers(schematic)
 	part_number_sum := 0
 	for _, part_number := range part_numbers {
-		part_number_sum += getPartNumberInt(schematic, part_number)
+		part_number_sum += getPartNumberInt(part_number, schematic)
 	}
+
+	fmt.Println("Locating gears...")
+	gears := getGears(schematic)
+
+	fmt.Println("Calculating gear ratios...")
+	gear_ratio_sum := 0
+	for _, gear := range gears {
+		gear_ratio_sum += getGearRatio(gear, part_numbers, schematic)
+	}
+
 	fmt.Printf("[Part 1] Part number sum: %d\n", part_number_sum)
+	fmt.Printf("[Part 2] Gear ratio sum: %d\n", gear_ratio_sum)
 }
 
 // Numbers are built as the grid is read from left to right.
@@ -77,7 +93,7 @@ func getNumbers(grid [][]string) []Number {
 			ch := grid[i][j]
 			isDigit := validNum.MatchString(ch)
 			if isDigit {
-				new_number.Digits = append(new_number.Digits, Point{Row: i, Col: j})
+				new_number.Digits = append(new_number.Digits, Digit{Pos: Point{Row: i, Col: j}})
 				readingNumber = true
 			} else if readingNumber && !isDigit { // If the end of the current number has been exceeded
 				readingNumber = false
@@ -105,7 +121,7 @@ func getPartNumbers(grid [][]string) []Number {
 	digitLoop:
 		for _, digit := range number.Digits {
 			for _, dir := range Dir {
-				adj_point := digit.Add(dir)
+				adj_point := digit.Pos.Add(dir)
 				if isOOB(grid, adj_point) {
 					continue
 				}
@@ -124,22 +140,86 @@ func getPartNumbers(grid [][]string) []Number {
 }
 
 // Checks if a point is Out of Bounds
-func isOOB(grid [][]string, p Point) bool {
+func isOOB(grid [][]string, d Point) bool {
 	height := len(grid)
 	width := len(grid[0])
-	if p.Row < 0 || p.Row >= height || p.Col < 0 || p.Col >= width {
+	if d.Row < 0 || d.Row >= height || d.Col < 0 || d.Col >= width {
 		return true
 	}
 	return false
 }
 
-func getPartNumberInt(grid [][]string, n Number) int {
+func getPartNumberInt(n Number, grid [][]string) int {
 	int_str := ""
 
 	for _, digit := range n.Digits {
-		int_str += grid[digit.Row][digit.Col]
+		int_str += grid[digit.Pos.Row][digit.Pos.Col]
 	}
 
 	num, _ := strconv.Atoi(int_str) // Conversion error ignored
 	return num
 }
+
+func getGears(grid [][]string) []Point {
+	height := len(grid)
+	width := len(grid[0])
+	gears := []Point{}
+
+	for i := 0; i < height; i++ {
+		for j := 0; j < width; j++ {
+			if grid[i][j] == "*" {
+				gears = append(gears, Point{Row: i, Col: j})
+			}
+		}
+	}
+
+	return gears
+}
+
+// If a gear is adjacent to exactly two part numbers, the ratio is
+// the product of the numbers.
+func getGearRatio(gear Point, part_numbers []Number, grid [][]string) int {
+	adj_numbers := []*Number{}
+	digits := []Digit{}
+
+	// Set each digit's Number ref
+	for _, number := range part_numbers {
+		for _, digit := range number.Digits {
+			digit.Number = &number
+			digits = append(digits, digit)
+		}
+	}
+
+	for _, delta := range Dir {
+		adj_point := gear.Add(delta)
+		for _, digit := range digits {
+			if adj_point == digit.Pos {
+				if !isInSlice(digit.Number, adj_numbers) {
+					adj_numbers = append(adj_numbers, digit.Number)
+				}
+			}
+		}
+	}
+	if len(adj_numbers) == 2 {
+		num1 := getPartNumberInt(*adj_numbers[0], grid)
+		num2 := getPartNumberInt(*adj_numbers[1], grid)
+		return num1 * num2
+	}
+
+	return 0 // Not a valid gear
+}
+
+func isInSlice[T comparable](val T, slice []T) bool {
+	for _, v := range slice {
+		if v == val {
+			return true
+		}
+	}
+	return false
+}
+
+// The Number reference field for each Digit should probably be set somewhere other than
+// getGearRatio(). I am unsure about how to do that in a way that keeps the memory
+// addresses accurate when the structs are passed between functions. Maybe that field
+// can be set in the main function and getGearRatio() should receive a reference to
+// part_numbers (*[]Number) instead.
