@@ -16,6 +16,7 @@ type Point struct {
 
 type Digit struct {
 	Pos    Point
+	Symbol string  // The string stored at Point
 	Number *Number // Reference to the Number this Digit is part of
 }
 
@@ -60,10 +61,11 @@ func main() {
 	}
 
 	fmt.Println("Locating part numbers...")
-	part_numbers := getPartNumbers(schematic)
+	var part_numbers []Number
+	getPartNumbers(schematic, &part_numbers)
 	part_number_sum := 0
 	for _, part_number := range part_numbers {
-		part_number_sum += getPartNumberInt(part_number, schematic)
+		part_number_sum += getPartNumberInt(part_number)
 	}
 
 	fmt.Println("Locating gears...")
@@ -72,7 +74,7 @@ func main() {
 	fmt.Println("Calculating gear ratios...")
 	gear_ratio_sum := 0
 	for _, gear := range gears {
-		gear_ratio_sum += getGearRatio(gear, part_numbers, schematic)
+		gear_ratio_sum += getGearRatio(gear, &part_numbers)
 	}
 
 	fmt.Printf("[Part 1] Part number sum: %d\n", part_number_sum)
@@ -80,10 +82,9 @@ func main() {
 }
 
 // Numbers are built as the grid is read from left to right.
-func getNumbers(grid [][]string) []Number {
+func getNumbers(grid [][]string, numbers *[]Number) {
 	height := len(grid)
 	width := len(grid[0])
-	numbers := []Number{}
 	validNum := regexp.MustCompile("[0-9]")
 
 	for i := 0; i < height; i++ {
@@ -93,27 +94,31 @@ func getNumbers(grid [][]string) []Number {
 			ch := grid[i][j]
 			isDigit := validNum.MatchString(ch)
 			if isDigit {
-				new_number.Digits = append(new_number.Digits, Digit{Pos: Point{Row: i, Col: j}})
+				new_number.Digits = append(new_number.Digits, Digit{Pos: Point{Row: i, Col: j}, Symbol: ch})
 				readingNumber = true
 			} else if readingNumber && !isDigit { // If the end of the current number has been exceeded
 				readingNumber = false
-				numbers = append(numbers, new_number)
+				*numbers = append(*numbers, new_number)
 				new_number = Number{}
 			}
 
 			if isDigit && j == width-1 { // If the end of the row has been reached
-				numbers = append(numbers, new_number)
+				*numbers = append(*numbers, new_number)
 			}
 		}
 	}
 
-	return numbers
+	for i := 0; i < len(*numbers); i++ {
+		for j := 0; j < len((*numbers)[i].Digits); j++ {
+			(*numbers)[i].Digits[j].Number = &(*numbers)[i]
+		}
+	}
 }
 
 // A number is a part number if it is adjacent to to any non-numeric symbol, besides ".".
-func getPartNumbers(grid [][]string) []Number {
-	numbers := getNumbers(grid)
-	part_numbers := []Number{}
+func getPartNumbers(grid [][]string, part_numbers *[]Number) {
+	var numbers []Number
+	getNumbers(grid, &numbers)
 	unwantedSymbol := regexp.MustCompile(`[0-9]|\.`)
 
 	for _, number := range numbers {
@@ -132,28 +137,26 @@ func getPartNumbers(grid [][]string) []Number {
 			}
 		}
 		if isPartNumber {
-			part_numbers = append(part_numbers, number)
+			*part_numbers = append(*part_numbers, number)
 		}
 	}
-
-	return part_numbers
 }
 
 // Checks if a point is Out of Bounds
-func isOOB(grid [][]string, d Point) bool {
+func isOOB(grid [][]string, p Point) bool {
 	height := len(grid)
 	width := len(grid[0])
-	if d.Row < 0 || d.Row >= height || d.Col < 0 || d.Col >= width {
+	if p.Row < 0 || p.Row >= height || p.Col < 0 || p.Col >= width {
 		return true
 	}
 	return false
 }
 
-func getPartNumberInt(n Number, grid [][]string) int {
+func getPartNumberInt(n Number) int {
 	int_str := ""
 
 	for _, digit := range n.Digits {
-		int_str += grid[digit.Pos.Row][digit.Pos.Col]
+		int_str += digit.Symbol
 	}
 
 	num, _ := strconv.Atoi(int_str) // Conversion error ignored
@@ -178,16 +181,12 @@ func getGears(grid [][]string) []Point {
 
 // If a gear is adjacent to exactly two part numbers, the ratio is
 // the product of the numbers.
-func getGearRatio(gear Point, part_numbers []Number, grid [][]string) int {
+func getGearRatio(gear Point, part_numbers *[]Number) int {
 	adj_numbers := []*Number{}
 	digits := []Digit{}
 
-	// Set each digit's Number ref
-	for _, number := range part_numbers {
-		for _, digit := range number.Digits {
-			digit.Number = &number
-			digits = append(digits, digit)
-		}
+	for _, number := range *part_numbers {
+		digits = append(digits, number.Digits...)
 	}
 
 	for _, delta := range Dir {
@@ -201,8 +200,8 @@ func getGearRatio(gear Point, part_numbers []Number, grid [][]string) int {
 		}
 	}
 	if len(adj_numbers) == 2 {
-		num1 := getPartNumberInt(*adj_numbers[0], grid)
-		num2 := getPartNumberInt(*adj_numbers[1], grid)
+		num1 := getPartNumberInt(*adj_numbers[0])
+		num2 := getPartNumberInt(*adj_numbers[1])
 		return num1 * num2
 	}
 
@@ -217,9 +216,3 @@ func isInSlice[T comparable](val T, slice []T) bool {
 	}
 	return false
 }
-
-// The Number reference field for each Digit should probably be set somewhere other than
-// getGearRatio(). I am unsure about how to do that in a way that keeps the memory
-// addresses accurate when the structs are passed between functions. Maybe that field
-// can be set in the main function and getGearRatio() should receive a reference to
-// part_numbers (*[]Number) instead.
