@@ -45,12 +45,21 @@ public class Main {
 
         // Parsing numbers...
         List<Number> partNumbers = getPartNumbers(grid);
-
-        List<Number> numbers = getNumbers(grid);
-        for (Number num : numbers) {
-            System.out.println(num.toString());
+        int partNumberSum = 0;
+        for (Number num : partNumbers) {
+            partNumberSum += num.toInt();
         }
-	}
+
+        // Locating gears...
+        List<Point> gears = getGears(grid);
+        int gearRatioSum = 0;
+        for (Point gear : gears) {
+            gearRatioSum += getGearRatio(gear, partNumbers);
+        }
+
+        System.out.println("[Part 1] Part number sum: " + partNumberSum);
+        System.out.println("[Part 2] Gear ratio sum: " + gearRatioSum);
+	}  
 
     // Returns all Numbers found in a grid. A Number is composed of consecutive Digits (left to right)
     public static List<Number> getNumbers(List<List<String>> grid) {
@@ -94,7 +103,84 @@ public class Main {
     // Returns a list of Numbers which have at least one Digit adjacent to a non-numeric symbol (except ".")
     public static List<Number> getPartNumbers(List<List<String>> grid) {
         List<Number> partNumbers = new ArrayList<>();
+        List<Number> numbers = getNumbers(grid);
+
+        for (Number num : numbers) {
+            digitLoop: for (Digit d : num.getDigits()) {
+                for (Point delta : DELTAS) {
+                    Point adj_point = d.getPosition().add(delta);
+                    if (isOOB(grid, adj_point)) {
+                        continue;
+                    }
+
+                    String symbol = grid.get(adj_point.getRow()).get(adj_point.getColumn());
+                    if (!symbol.matches("[\\d.]")) {
+                        partNumbers.add(num);
+                        break digitLoop;
+                    }
+                }
+            }
+        }
 
         return partNumbers;
+    }
+
+    // Checks if a Point is Out of Bounds of the grid
+    public static boolean isOOB(List<List<String>> grid, Point p) {
+        int height = grid.size();
+        int width = grid.get(0).size();
+
+        if (p.getRow() < 0 || p.getRow() >= height || p.getColumn() < 0 || p.getColumn() >= width) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    public static List<Point> getGears(List<List<String>> grid) {
+        List<Point> gears = new ArrayList<>();
+        int height = grid.size();
+        int width = grid.get(0).size();
+
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                String symbol = grid.get(i).get(j);
+                if (symbol.equals("*")) {
+                    gears.add(new Point(i,j));
+                }
+            }
+        }
+
+        return gears;
+    }
+
+    public static int getGearRatio(Point gear, List<Number> partNumbers) {
+        List<Number> adjNumbers = new ArrayList<>();
+        List<Digit> digits = new ArrayList<>();
+
+        for (Number num : partNumbers) {
+            for (Digit d : num.getDigits()) {
+                digits.add(d);
+            }
+        }
+
+        for (Point delta : DELTAS) {
+            Point adjPoint = gear.add(delta);
+            for (Digit d : digits) {
+                if (adjPoint.getRow() == d.getPosition().getRow() && adjPoint.getColumn() == d.getPosition().getColumn()) {
+                    if (!adjNumbers.contains(d.getNumber())) {
+                        adjNumbers.add(d.getNumber());
+                    }
+                }
+
+                if (adjNumbers.size() == 2) {
+                    return adjNumbers.get(0).toInt() * adjNumbers.get(1).toInt();
+                } else if (adjNumbers.size() > 2) {
+                    return 0;
+                }
+            }
+        }
+        
+        return 0;
     }
 }
