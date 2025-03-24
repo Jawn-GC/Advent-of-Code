@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 )
 
 // The directional fields determine if the plot
 // has a wall on a particular side.
 type Plot struct {
+	Pos   Point
 	Type  string
 	Up    bool
 	Right bool
@@ -17,8 +19,9 @@ type Plot struct {
 	Left  bool
 }
 
-func NewPlot(plot_type string) Plot {
+func NewPlot(pos Point, plot_type string) Plot {
 	return Plot{
+		Pos:   pos,
 		Type:  plot_type,
 		Up:    true,
 		Right: true,
@@ -57,15 +60,17 @@ func main() {
 
 	fmt.Printf("Parsing garden plots...\n")
 	garden := [][]Plot{}
+	row_count := 0
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
 		plots := strings.Split(line, "")
 		garden_row := []Plot{}
-		for _, p := range plots {
-			garden_row = append(garden_row, NewPlot(p))
+		for col_count, p := range plots {
+			garden_row = append(garden_row, NewPlot(Point{Row: row_count, Col: col_count}, p))
 		}
 		garden = append(garden, garden_row)
+		row_count++
 	}
 
 	fmt.Printf("Finding plot regions...\n")
@@ -198,10 +203,86 @@ func calcFencePricingByPerimeter(region []*Plot) int {
 	return price
 }
 
+// Order the region's Plots from top-leftmost to bottom-rightmost. Iterate over all plots
+// in this new order. Consider the effect on the number of sides of a region as plots are
+// added to it one by one. In the figure below, the "A" Plot is the next plot to be added.
+// The cells marked with "*" may or may not hold plots of the current region. The cells
+// marked with "_" are guaranteed to not have plots that have already been added since plots
+// are added left-to-right and top-to-bottom. This function modifies the number of sides of
+// the region by considering each of 16 possible states of the surrounding cells.
+//
+// +---+---+---+
+// | * | * | * |
+// +---+---+---+
+// | * | A | _ |
+// +---+---+---+
+// | _ | _ | _ |
+// +---+---+---+
 func calcFencePricingBySides(region []*Plot) int {
-	price := 0
+	sides := 0
 
-	return price
+	sort.Slice(region, func(i, j int) bool {
+		if region[i].Pos.Row == region[j].Pos.Row {
+			return region[i].Pos.Col < region[j].Pos.Col
+		}
+		return region[i].Pos.Row < region[j].Pos.Row
+	})
+
+	visited_cells := map[Point]bool{}
+	for _, current_plot := range region {
+		// It is not necessary to check if the adjacent cells are OOB of the original grid.
+		// They are simply treated as plots that are not a part of the region.
+		// This function does not need to access the original grid.
+		up_left_cell := current_plot.Pos.Add(Dir["UP"]).Add(Dir["LEFT"])
+		up_cell := current_plot.Pos.Add(Dir["UP"])
+		up_right_cell := current_plot.Pos.Add(Dir["UP"]).Add(Dir["RIGHT"])
+		left_cell := current_plot.Pos.Add(Dir["LEFT"])
+
+		// Check which adjacent points have been visited
+		_, up_left_cell_visited := visited_cells[up_left_cell]
+		_, up_cell_visited := visited_cells[up_cell]
+		_, up_right_cell_visited := visited_cells[up_right_cell]
+		_, left_cell_visited := visited_cells[left_cell]
+
+		if !up_left_cell_visited && !up_cell_visited && !up_right_cell_visited && !left_cell_visited {
+			sides += 4 // 0000
+		} else if up_left_cell_visited && !up_cell_visited && !up_right_cell_visited && !left_cell_visited {
+			sides += 4 // 1000
+		} else if !up_left_cell_visited && up_cell_visited && !up_right_cell_visited && !left_cell_visited {
+			sides += 0 // 0100
+		} else if up_left_cell_visited && up_cell_visited && !up_right_cell_visited && !left_cell_visited {
+			sides += 2 // 1100
+		} else if !up_left_cell_visited && !up_cell_visited && up_right_cell_visited && !left_cell_visited {
+			sides += 4 // 0010
+		} else if up_left_cell_visited && !up_cell_visited && up_right_cell_visited && !left_cell_visited {
+			sides += 4 // 1010
+		} else if !up_left_cell_visited && up_cell_visited && up_right_cell_visited && !left_cell_visited {
+			sides += 2 // 0110
+		} else if up_left_cell_visited && up_cell_visited && up_right_cell_visited && !left_cell_visited {
+			sides += 4 // 1110
+		} else if !up_left_cell_visited && !up_cell_visited && !up_right_cell_visited && left_cell_visited {
+			sides += 0 // 0001
+		} else if up_left_cell_visited && !up_cell_visited && !up_right_cell_visited && left_cell_visited {
+			sides += 2 // 1001
+		} else if !up_left_cell_visited && up_cell_visited && !up_right_cell_visited && left_cell_visited {
+			sides -= 2 // 0101
+		} else if up_left_cell_visited && up_cell_visited && !up_right_cell_visited && left_cell_visited {
+			sides -= 2 // 1101
+		} else if !up_left_cell_visited && !up_cell_visited && up_right_cell_visited && left_cell_visited {
+			sides += 0 // 0011
+		} else if up_left_cell_visited && !up_cell_visited && up_right_cell_visited && left_cell_visited {
+			sides += 2 // 1011
+		} else if !up_left_cell_visited && up_cell_visited && up_right_cell_visited && left_cell_visited {
+			sides += 0 // 0111
+		} else if up_left_cell_visited && up_cell_visited && up_right_cell_visited && left_cell_visited {
+			sides += 0 // 1111
+		}
+
+		visited_cells[current_plot.Pos] = true
+	}
+
+	// fmt.Printf("Type: %s, Area: %d, Sides: %d\n", region[0].Type, len(region), sides)
+	return sides * len(region)
 }
 
 func isInSlice[T comparable](val T, slice []T) bool {
