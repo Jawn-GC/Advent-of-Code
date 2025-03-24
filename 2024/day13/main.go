@@ -58,18 +58,30 @@ func main() {
 	}
 
 	fmt.Printf("Calculating number of tokens required...\n")
-	total_tokens := 0
+	total_tokens1 := 0
+	total_tokens2 := 0
 	for _, claw_machine := range claw_machines {
-		total_tokens += numTokensRequired(claw_machine)
+		total_tokens1 += numTokensRequired(claw_machine, 1)
+		total_tokens2 += numTokensRequired(claw_machine, 2)
 	}
-	fmt.Printf("Total number of tokens required: %d\n", total_tokens)
+	fmt.Printf("[Part 1] Total number of tokens required: %d\n", total_tokens1)
+	fmt.Printf("[Part 2] Total number of tokens required: %d\n", total_tokens2)
 }
 
-func numTokensRequired(machine ClawMachine) int {
+func numTokensRequired(machine ClawMachine, mode int) int {
 	tokens := 0
-	matrix := getMachineMatrix(machine)
+	var tol float64
+	var matrix [][]float64
+	if mode == 1 {
+		tol = 0.0000001
+		matrix = getMachineMatrix1(machine)
+	} else if mode == 2 {
+		tol = 0.01
+		matrix = getMachineMatrix2(machine)
+	}
 	rref(matrix)
-	if isValidSolution(matrix) {
+
+	if isValidSolution(matrix, tol) {
 		a := math.Round(matrix[0][2]) // Number of presses for Button A
 		b := math.Round(matrix[1][2]) // Number of presses for Button B
 
@@ -83,7 +95,7 @@ func numTokensRequired(machine ClawMachine) int {
 // Column 1 represents movement due to pushing Button A.
 // Column 2 represents movement due to pushing Button B.
 // Column 3 represents the goal position.
-func getMachineMatrix(machine ClawMachine) [][]float64 {
+func getMachineMatrix1(machine ClawMachine) [][]float64 {
 	matrix := [][]float64{}
 
 	// Convert strings to ints and store them in rows of
@@ -98,6 +110,26 @@ func getMachineMatrix(machine ClawMachine) [][]float64 {
 	yB, _ := strconv.Atoi(machine.ButtonB[1])
 	yP, _ := strconv.Atoi(machine.PrizeLocation[1])
 	rowY := []float64{float64(yA), float64(yB), float64(yP)}
+	matrix = append(matrix, rowY)
+
+	return matrix
+}
+
+func getMachineMatrix2(machine ClawMachine) [][]float64 {
+	matrix := [][]float64{}
+
+	// Convert strings to ints and store them in rows of
+	// a matrix. Ignore potential conversion errors.
+	xA, _ := strconv.Atoi(machine.ButtonA[0])
+	xB, _ := strconv.Atoi(machine.ButtonB[0])
+	xP, _ := strconv.Atoi(machine.PrizeLocation[0])
+	rowX := []float64{float64(xA), float64(xB), float64(10000000000000 + xP)}
+	matrix = append(matrix, rowX)
+
+	yA, _ := strconv.Atoi(machine.ButtonA[1])
+	yB, _ := strconv.Atoi(machine.ButtonB[1])
+	yP, _ := strconv.Atoi(machine.PrizeLocation[1])
+	rowY := []float64{float64(yA), float64(yB), float64(10000000000000 + yP)}
 	matrix = append(matrix, rowY)
 
 	return matrix
@@ -132,7 +164,7 @@ func rref(matrix [][]float64) {
 // The matrix is assumed to be in rref with a unique solution.
 // This function simply checks if the solution vector has
 // whole-number values.
-func isValidSolution(matrix [][]float64) bool {
+func isValidSolution(matrix [][]float64, tol float64) bool {
 	a := matrix[0][2]
 	b := matrix[1][2]
 
@@ -143,8 +175,6 @@ func isValidSolution(matrix [][]float64) bool {
 
 	ar := math.Round(a)
 	br := math.Round(b)
-
-	tol := 0.0000001
 
 	if math.Abs(ar-a) > tol || math.Abs(br-b) > tol {
 		return false
