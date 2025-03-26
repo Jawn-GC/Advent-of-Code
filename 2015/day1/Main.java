@@ -5,8 +5,6 @@ import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
-
-        System.out.println("Reading elevator instructions...");
         File file;
         Scanner scanner;
         try {
