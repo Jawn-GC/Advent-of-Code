@@ -83,14 +83,6 @@ func main() {
 	fmt.Printf("Calculating GPS coordinates...\n")
 	gps_sum := calcGPSSum(grid)
 	fmt.Printf("The sum of GPS coordinates is %d\n", gps_sum)
-
-	// Print final grid
-	//for _, grid_row := range grid {
-	//	for _, str := range grid_row {
-	//		fmt.Printf("%s", str)
-	//	}
-	//	fmt.Printf("\n")
-	//}
 }
 
 func calcGPSSum(grid [][]string) int {
