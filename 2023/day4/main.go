@@ -70,6 +70,8 @@ func getScratchcardPoints(card *Card) int {
 	return points
 }
 
+// There is intially 1 of each card. Suppose that a card is worth n points. Then, copies
+// of the next n cards are created.
 func getTotalScratchcards(cards []Card) int {
 	total_count := 0
 	card_counts := make([]int, len(cards))
