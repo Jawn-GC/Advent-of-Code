@@ -26,17 +26,27 @@ fn main() -> std::io::Result<()> {
     }
 
     println!("Finding invalid IDs...");
-    let mut invalid_ids: Vec<u64> = Vec::new();
+    let mut invalid_ids1: Vec<u64> = Vec::new();
+    let mut invalid_ids2: Vec<u64> = Vec::new();
     for range in ranges {
-        let mut ids = get_invalid_ids1(range);
-        invalid_ids.append(&mut ids); // append moves values from one vector to another, so they both must be mutable
+        let mut ids1 = get_invalid_ids1(&range);
+        let mut ids2 = get_invalid_ids2(&range);
+        invalid_ids1.append(&mut ids1); // append moves values from one vector to another, so they both must be mutable
+        invalid_ids2.append(&mut ids2);
     }
 
-    let mut sum: u64 = 0;
-    for id in invalid_ids {
-        sum += id;
+    let mut sum1: u64 = 0;
+    for id in invalid_ids1 {
+        sum1 += id;
     }
-    println!("[Part 1]: The sum of invalid ids is {sum}");
+    invalid_ids2.sort_unstable();
+    invalid_ids2.dedup();
+    let mut sum2: u64 = 0;
+    for id in invalid_ids2 {
+        sum2 += id;
+    }
+    println!("[Part 1]: The sum of invalid ids is {sum1}");
+    println!("[Part 2]: The sum of invalid ids is {sum2}");
 
     Ok(())
 }
@@ -49,7 +59,7 @@ fn main() -> std::io::Result<()> {
 // If range.start is even, start checking for IDs with a pattern equal the digits in the first half of range.start.
 // For example, start checking ID 4545 if range.start = 4513. 
 // Continue checking IDs until current_id is out of range.
-fn get_invalid_ids1(range: Range) -> Vec<u64> {
+fn get_invalid_ids1(range: &Range) -> Vec<u64> {
     let mut ids = Vec::new();
     let mut num_digits: u64 = get_num_digits(range.start);
     let mut pattern: u64;
@@ -61,9 +71,46 @@ fn get_invalid_ids1(range: Range) -> Vec<u64> {
     }
 
     loop {
-        let current_id: u64 = multiply_by_ten(pattern, get_num_digits(pattern)) + pattern;
+        let current_id: u64 = generate_sequence(pattern, 2);
         if current_id >= range.start && current_id <= range.end {ids.push(current_id);}
         else if current_id > range.end {break;}
+        pattern += 1;
+    }
+
+    ids
+}
+
+// Invalid IDs are those that look like a sequence of digits repeated 2 or more times (e.g. 123123123, 55)
+// Start with a pattern of 1 and generate sequences with the pattern until the sequence has more digits the end of the range.
+// Save the sequences that are within the range.
+// Increment the pattern integer by one and repeat the sequence generation step.
+// Exit the pattern increment loop once the pattern cannot be repeated even once without exceeding the number of digits of the max value.
+fn get_invalid_ids2(range: &Range) -> Vec<u64> {
+    let mut ids = Vec::new();
+    let max_digits: u64 = get_num_digits(range.end);
+    let min_digits: u64 = get_num_digits(range.start);
+
+    let mut pattern: u64 = 1;
+    loop {
+        let pattern_length: u64 = get_num_digits(pattern);
+        if pattern_length * 2 > max_digits {break;}
+        for i in 2.. {
+            if pattern_length * i > max_digits {
+                break;
+            }
+            else if pattern_length * i < min_digits {
+                continue;
+            }
+
+            let sequence: u64 = generate_sequence(pattern, i);
+            
+            if sequence >= range.start && sequence <= range.end {
+                ids.push(sequence);
+            }
+            else if sequence > range.end {
+                break;
+            }
+        }
         pattern += 1;
     }
 
@@ -95,4 +142,14 @@ fn divide_by_ten(x: u64, n: u64) -> u64 {
         result /= 10; 
     }
     result
+}
+
+// Does not handle cases that result in integer overflow
+fn generate_sequence(pattern: u64, num_copies: u64) -> u64 {
+    let mut sequence: u64 = pattern;
+    let pattern_length: u64 = get_num_digits(pattern);
+    for _ in 1..num_copies {
+        sequence = multiply_by_ten(sequence, pattern_length) + pattern;
+    }
+    sequence
 }
